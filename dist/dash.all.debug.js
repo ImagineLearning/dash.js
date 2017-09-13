@@ -2092,18 +2092,9 @@ function X2JS(config) {
         var xmlDoc;
         if (window.DOMParser) {
             var parser = new window.DOMParser();
-            var parsererrorNS = null;
-            // IE9+ now is here
-            if (!isIEParser) {
-                try {
-                    parsererrorNS = parser.parseFromString("INVALID", "text/xml").getElementsByTagName("parsererror")[0].namespaceURI;
-                } catch (err) {
-                    parsererrorNS = null;
-                }
-            }
             try {
                 xmlDoc = parser.parseFromString(xmlDocStr, "text/xml");
-                if (parsererrorNS != null && xmlDoc.getElementsByTagNameNS(parsererrorNS, "parsererror").length > 0) {
+                if (xmlDoc.getElementsByTagNameNS("*", "parseerror").length > 0) {
                     //throw new Error('Error parsing XML: '+xmlDocStr);
                     xmlDoc = null;
                 }
@@ -7607,7 +7598,8 @@ exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
             regionW: null,
             imgResolver: imgResolver,
             displayForcedOnlyMode: displayForcedOnlyMode || false,
-            isd: isd
+            isd: isd,
+            errorHandler: errorHandler
         };
 
         element.appendChild(rootcontainer);
@@ -7651,6 +7643,14 @@ exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
 
             e = document.createElement("br");
 
+        }
+        
+        if (! e) {
+            
+            reportError(context.errorHandler, "Error processing ISD element kind: " + isd_element.kind);
+            
+            return;
+            
         }
 
         /* override UA default margin */
@@ -8320,6 +8320,13 @@ exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
 
         STYLMAP_BY_QNAME[STYLING_MAP_DEFS[i].qname] = STYLING_MAP_DEFS[i];
     }
+    
+    function reportError(errorHandler, msg) {
+
+        if (errorHandler && errorHandler.error && errorHandler.error(msg))
+            throw msg;
+
+    }
 
 })(typeof exports === 'undefined' ? this.imscHTML = {} : exports,
     typeof imscNames === 'undefined' ? _dereq_(21) : imscNames,
@@ -8591,12 +8598,11 @@ exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
                     isd_element.styleAttrs[cs.qname]
                     );
 
-
-                isd_element.styleAttrs[cs.qname] = cstyle;
-
-
-                // reportError(errorHandler, "Style '" + sa.qname + "' on element '" + isd_element.kind + "' cannot be computed");
-
+                if (cstyle !== null) {
+                    isd_element.styleAttrs[cs.qname] = cstyle;
+                } else {
+                    reportError(errorHandler, "Style '" + cs.qname + "' on element '" + isd_element.kind + "' cannot be computed");
+                }
             }
 
         }

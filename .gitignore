@@ -16,7 +16,6 @@ reports
 jsdoc
 dist
 build/temp
-build/es5
 coverage
 
 #################
